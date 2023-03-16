@@ -6,34 +6,43 @@ import java.util.zip.Inflater;
 
 public class MinecraftRegion {
 
+    //chunk offset location in file
     int[] locations = new int[1024];
+    //chunk size
     int[] sizes = new int[1024];
 
-    RandomAccessFile is;
+    RandomAccessFile file;
     private final MinecraftChunk[][] chunks = new MinecraftChunk[32][32];
 
     public MinecraftRegion(File regionFile) throws IOException, DataFormatException {
-        is = new RandomAccessFile(regionFile, "r");
-        //First read the 1024 chunks offsets
-        //int n = 0;
-        for (int i = 0; i < 1024; i++) {
-            locations[i] += is.read() << 16;
-            locations[i] += is.read() << 8;
-            locations[i] += is.read();
+        file = new RandomAccessFile(regionFile, "r");
 
-            sizes[i] += is.read();
+        //First read the 1024 chunks offsets
+        for (int i = 0; i < 1024; i++) {
+            locations[i] += file.read() << 16;
+            locations[i] += file.read() << 8;
+            locations[i] += file.read();
+
+            sizes[i] += file.read();
         }
+
         //Discard the timestamp bytes, we don't care.
         byte[] osef = new byte[4];
         for (int i = 0; i < 1024; i++) {
-            is.read(osef);
+            file.read(osef);
         }
 
-        for (int x = 0; x < 32; x++)
-            for (int z = 0; z < 32; z++)
+        //Load chunks, there are 32^2 chunks in a region.
+        for (int x = 0; x < 32; x++) {
+            for (int z = 0; z < 32; z++) {
                 chunks[x][z] = getChunkInternal(x, z);
+            }
+        }
     }
 
+    /**
+     * Offset chunk xz to offset location
+     */
     int offset(int x, int z) {
         return ((x & 31) + (z & 31) * 32);
     }
@@ -46,21 +55,22 @@ public class MinecraftRegion {
         int l = offset(x, z);
         if (sizes[l] > 0) {
             //Chunk non-void, load it
-            is.seek(locations[l] * 4096L);
+            file.seek(locations[l] * 4096L);
+
             //Read 4-bytes of data length
             int compressedLength = 0;
-            compressedLength += is.read() << 24;
-            compressedLength += is.read() << 16;
-            compressedLength += is.read() << 8;
-            compressedLength += is.read();
+            compressedLength += file.read() << 24;
+            compressedLength += file.read() << 16;
+            compressedLength += file.read() << 8;
+            compressedLength += file.read();
+
             //Read compression mode
-            int compression = is.read();
+            int compression = file.read();
             if (compression != 2) {
                 throw new DataFormatException("\"Fatal error : compression scheme not Zlib. (\" + compression + \") at \" + is.getFilePointer() + \" l = \" + l + \" s= \" + sizes[l]");
-            }
-            else {
+            } else {
                 byte[] compressedData = new byte[compressedLength];
-                is.read(compressedData);
+                file.read(compressedData);
 
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
@@ -81,7 +91,13 @@ public class MinecraftRegion {
         return new MinecraftChunk(x, z);
     }
 
+    public void save(File file) throws FileNotFoundException {
+        RandomAccessFile outputStream = new RandomAccessFile(file, "w");
+
+
+    }
+
     public void close() throws IOException {
-        is.close();
+        file.close();
     }
 }

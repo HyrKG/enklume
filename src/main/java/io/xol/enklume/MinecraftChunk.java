@@ -56,6 +56,10 @@ public class MinecraftChunk {
         return root;
     }
 
+    public MinecraftBlock getBlock(int x, int y, int z) {
+        return new MinecraftBlock(getBlockID(x, y, z), getBlockMeta(x, y, z));
+    }
+
     public int getBlockID(int x, int y, int z) {
         if (root == null)
             return 0;

@@ -3,6 +3,7 @@ package io.xol.enklume.nbt;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 
 /**
  * Clean code is for suckers anyway
@@ -21,6 +22,10 @@ public abstract class NBTag {
         } catch (IOException e) {
             return null;
         }
+    }
+
+    public static void writeOutputStream(OutputStream baos) {
+
     }
 
     public static NBTag createNamedFromList(int t, int listIndex) {
